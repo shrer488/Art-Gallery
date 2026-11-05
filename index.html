@@ -68,7 +68,8 @@ button:focus-visible { outline: 2px solid var(--lamp); outline-offset: 2px; }
 .pad button.on { background: rgba(242,201,138,.22); border-color: var(--lamp); transform: translateY(1px); }
 .pad svg { width: 30px; height: 30px; display: block; pointer-events: none; }
 .pad .k-up { grid-column: 2; grid-row: 1; } .pad .k-l { grid-column: 1; grid-row: 2; } .pad .k-d { grid-column: 2; grid-row: 2; } .pad .k-r { grid-column: 3; grid-row: 2; }
-body.haspad .hint { bottom: calc(env(safe-area-inset-bottom, 0px) + 160px); left: 50%; transform: translateX(-50%); text-align: center; width: max-content; max-width: calc(100vw - 32px); }
+body.haspad .hint { display: none !important; }
+body.haspad .hint:not(*) { bottom: calc(env(safe-area-inset-bottom, 0px) + 160px); left: 50%; transform: translateX(-50%); text-align: center; width: max-content; max-width: calc(100vw - 32px); }
 body.haspad .talk-hint { bottom: calc(env(safe-area-inset-bottom, 0px) + 160px); font-size: .95rem; }
 body.haspad #chat { bottom: calc(env(safe-area-inset-bottom, 0px) + 156px); }
 body.haspad .rooms { bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); flex-direction: column; align-items: flex-end; gap: 10px; }
