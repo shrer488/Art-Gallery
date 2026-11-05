@@ -55,6 +55,20 @@ button:focus-visible { outline: 2px solid var(--lamp); outline-offset: 2px; }
 .hint .arrows svg { width: 15px; height: 15px; display: block; }
 .hint .k-up { grid-column: 2; grid-row: 1; } .hint .k-l { grid-column: 1; grid-row: 2; } .hint .k-d { grid-column: 2; grid-row: 2; } .hint .k-r { grid-column: 3; grid-row: 2; }
 @media (max-width: 640px) { .hint { bottom: calc(env(safe-area-inset-bottom, 0px) + 64px); } }
+.pad { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); transform: translateX(-50%);
+  display: grid; grid-template-columns: repeat(3, 50px); grid-template-rows: 50px 50px; gap: 6px; z-index: 2;
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.pad[hidden] { display: none; }
+.pad button { display: grid; place-items: center; padding: 0; border-radius: 10px; cursor: pointer;
+  background: rgba(20,16,13,.62); border: 1px solid rgba(242,201,138,.35); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  transition: background .08s, transform .08s, border-color .08s; touch-action: none; }
+.pad button.on { background: rgba(242,201,138,.22); border-color: var(--lamp); transform: translateY(1px); }
+.pad svg { width: 22px; height: 22px; display: block; pointer-events: none; }
+.pad .k-up { grid-column: 2; grid-row: 1; } .pad .k-l { grid-column: 1; grid-row: 2; } .pad .k-d { grid-column: 2; grid-row: 2; } .pad .k-r { grid-column: 3; grid-row: 2; }
+body.haspad .hint { bottom: calc(env(safe-area-inset-bottom, 0px) + 132px); left: 50%; transform: translateX(-50%); text-align: center; width: max-content; max-width: calc(100vw - 32px); }
+body.haspad .talk-hint { bottom: calc(env(safe-area-inset-bottom, 0px) + 132px); }
+body.haspad #chat { bottom: calc(env(safe-area-inset-bottom, 0px) + 128px); }
+body.haspad .rooms { bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); flex-direction: column; align-items: flex-end; }
 .crosshair { position: fixed; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px; border-radius: 50%; background: var(--paper); opacity: .7; pointer-events: none; }
 
 /* Entry card */
@@ -166,6 +180,7 @@ button:focus-visible { outline: 2px solid var(--lamp); outline-offset: 2px; }
 </div>
 
 <div class="talk-hint" id="talkHint" hidden></div>
+<div class="pad" id="pad" hidden aria-label="Walk"><button type="button" class="k-up" data-k="ArrowUp" aria-label="Walk forward"></button><button type="button" class="k-l" data-k="ArrowLeft" aria-label="Turn left"></button><button type="button" class="k-d" data-k="ArrowDown" aria-label="Walk back"></button><button type="button" class="k-r" data-k="ArrowRight" aria-label="Turn right"></button></div>
 <div id="chat" hidden role="dialog" aria-labelledby="chatWho">
   <div class="who" id="chatWho"><i></i><span></span><small></small></div>
   <p class="line" id="chatLine" aria-live="polite"></p>
@@ -1963,13 +1978,30 @@ function setHint() {
   hint.innerHTML = fine
     ? (locked ? `<span class="walkrow">${ARROWS}</span>` + "mouse to look · click a work to see it close · <kbd>Esc</kbd> frees the cursor"
               : `<span class="walkrow">${ARROWS}</span>` + "drag to look · click a work to see it close")
-    : "Drag to look around · tap the floor to walk · tap a work to see it close";
+    : "Arrows to walk · drag to look · tap a work to see it close";
   paintCaps();
 }
 setHint();
+// phones and tablets: an on-screen arrow pad at the bottom (up/down walk, left/right turn), held like keys
+const pad = document.getElementById("pad");
+if (!fine) {
+  document.body.classList.add("haspad"); pad.hidden = false;
+  const rot = { "k-up": 0, "k-l": -90, "k-d": 180, "k-r": 90 };
+  pad.querySelectorAll("button").forEach(b => {
+    b.innerHTML = arrowSvg(rot[b.className]).replace('stroke-width="1.6"', 'stroke-width="1.9"');
+    const k = b.dataset.k;
+    const on = e => { e.preventDefault(); b.setPointerCapture && b.setPointerCapture(e.pointerId); keys[k] = true; target = null; targetYaw = null; b.classList.add("on"); };
+    const off = () => { keys[k] = false; b.classList.remove("on"); };
+    b.addEventListener("pointerdown", on);
+    b.addEventListener("pointerup", off); b.addEventListener("pointercancel", off); b.addEventListener("lostpointercapture", off);
+    b.addEventListener("contextmenu", e => e.preventDefault());
+  });
+  const padVis = () => { const show = viewer.hidden && chat.hidden && document.getElementById("intro").hidden; if (pad.hidden === show) { pad.hidden = !show; if (!show) pad.querySelectorAll("button").forEach(b => { keys[b.dataset.k] = false; b.classList.remove("on"); }); } requestAnimationFrame(padVis); };
+  requestAnimationFrame(padVis);   // starts after the whole script has run (chat is declared further down)
+}
 document.getElementById("controls").innerHTML = fine
   ? "<dt>Walk</dt><dd>W A S D or arrow keys (hold Shift to stroll faster)</dd><dt>Look</dt><dd>Move the mouse</dd><dt>Close-up</dt><dd>Click any work or its wall label</dd>"
-  : "<dt>Look</dt><dd>Drag with one finger</dd><dt>Walk</dt><dd>Tap a spot on the floor</dd><dt>Close-up</dt><dd>Tap any work or its wall label</dd>";
+  : "<dt>Walk</dt><dd>Hold the arrows at the bottom (up and down walk, left and right turn), or tap a spot on the floor</dd><dt>Look</dt><dd>Drag with one finger</dd><dt>Close-up</dt><dd>Tap any work or its wall label</dd>";
 
 // ---------- load ----------
 const enter = document.getElementById("enter");
