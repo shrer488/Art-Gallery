@@ -3221,6 +3221,42 @@ if (window.claude && claude.use) claude.use("room").then(room => {
   roomApi = room;
   room.onPeers(ch => syncPeers(ch.peers), () => { roomApi = null; syncPeers([]); });
 }).catch(() => {});
+// outside claude.ai (the GitHub Pages copy): the same live visitors through Riya's Firebase Realtime Database.
+// Each viewer writes only its own spot under visitors/<id>, removed when the tab closes; stale spots (>60s) are ignored.
+const FIREBASE = {
+  apiKey: "AIzaSyCgYbJ5fflKgenm8t-V95A9WCmMw1vovUM",
+  authDomain: "ink-and-water-db951.firebaseapp.com",
+  databaseURL: "https://ink-and-water-db951-default-rtdb.firebaseio.com",
+  projectId: "ink-and-water-db951",
+  appId: "1:251598467481:web:b330b1cb2bd33bd708a308"
+};
+if (!(window.claude && claude.use)) {
+  const load = src => new Promise((ok, bad) => { const el = document.createElement("script"); el.src = src; el.onload = ok; el.onerror = bad; document.head.append(el); });
+  const SDK = "https://cdn.jsdelivr.net/npm/firebase@10.12.2/";
+  load(SDK + "firebase-app-compat.js").then(() => load(SDK + "firebase-database-compat.js")).then(() => {
+    const db = firebase.initializeApp(FIREBASE).database();
+    const id = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+    const mine = db.ref("visitors/" + id);
+    mine.onDisconnect().remove();
+    let skew = 0; db.ref(".info/serverTimeOffset").on("value", v => { skew = v.val() || 0; });
+    let last = null;
+    const put = me => { last = me; return mine.set({ ...me, t: firebase.database.ServerValue.TIMESTAMP }); };
+    setInterval(() => { if (last) put(last).catch(() => {}); }, 20000);   // heartbeat while standing still
+    roomApi = { presence: put };
+    let snapPeers = [];
+    const refresh = () => {
+      const now = Date.now() + skew;
+      syncPeers(snapPeers.filter(p => p.peer !== id && now - (p.presence.t || 0) < 60000));
+    };
+    db.ref("visitors").on("value", snap => {
+      const v = snap.val() || {};
+      snapPeers = Object.keys(v).map(k => ({ peer: k, kind: "viewer", presence: v[k] }));
+      refresh();
+    });
+    setInterval(refresh, 15000);
+    addEventListener("pagehide", () => { mine.remove(); });
+  }).catch(() => {});
+}
 
 // talking to the two resident visitors: a few things to ask, and (where Claude is available
 // to this viewer) anything else, answered in character
