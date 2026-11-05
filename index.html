@@ -3172,29 +3172,6 @@ function endTalk(relock = true) {
   if (relock && talkLocked) lock();
   talkLocked = false;
 }
-// free questions, answered in character by Claude when this viewer can use it
-if (window.claude && claude.use) claude.use("sample").then(s => { sample = s; }).catch(() => {});
-chatForm.addEventListener("submit", async e => {
-  e.preventDefault();
-  const q = chatInput.value.trim(); if (!q || !sample || !talking) return;
-  const r = talking; chatInput.value = ""; say("…");
-  const here = WORKS[PLAN[r.spot].i];
-  const works = PLAN.map(p => `- “${WORKS[p.i].t}” (${WORKS[p.i].m}): ${WORKS[p.i].n}`).join("\n");
-  const favs = r.who.favs.map(([i]) => `“${WORKS[i].t}”`).join(", ");
-  const past = r.history.slice(-6).map(([a, b]) => `Visitor: ${a}\n${r.who.name}: ${b}`).join("\n");
-  const role = r.who.artist ? `This is your own small night-time virtual exhibition, "Ink & Water". Talk about the works as their maker, but only from what is in the list below; do not invent dates, places, prices or facts about your life.` : `You are another visitor in a small night-time virtual exhibition, "Ink & Water", of drawings and paintings by the artist Riya. You are not the artist and do not know them personally.`;
-  const prompt = `${r.who.persona} ${role} You are standing in front of “${here.t}”. Your favourites are ${favs}.\n\nThe works on show:\n${works}\n\nStay in character. Answer the visitor in one to three short, natural spoken sentences, plain text, no stage directions. Only talk about works in the list above. If asked something unrelated to the exhibition, answer briefly and kindly steer back to the art.\n\n${past ? past + "\n" : ""}Visitor: ${q}\n${r.who.name}:`;
-  asking = new AbortController();
-  try {
-    const { text } = await sample(prompt, { modelTier: "quick", signal: asking.signal, cache: false, onText: ({ text }) => { if (talking === r) say(text); } });
-    if (talking === r) say(text.trim());
-    r.history.push([q, text.trim()]);
-  } catch (err) {
-    if (talking !== r) return;
-    if (err && err.code === "not_granted") { sample = null; chatForm.hidden = true; say(pickOne(["Sorry, I was miles away. Ask me about my favourite?", "Hmm? Oh, I was lost in this one."])); }
-    else say(err && err.code === "rate_limited" ? "Give me a moment, I'm still thinking about the last one." : "Sorry, I was miles away. What did you say?");
-  } finally { asking = null; }
-});
 // a nudge when you're close enough to say hello
 let hintKey = "";
 function updateTalkHint() {
