@@ -1,3 +1,6 @@
+<!doctype html>
+<html lang="en">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta charset="utf-8">
 <title>Ink &amp; Water</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -55,20 +58,23 @@ button:focus-visible { outline: 2px solid var(--lamp); outline-offset: 2px; }
 .hint .arrows svg { width: 15px; height: 15px; display: block; }
 .hint .k-up { grid-column: 2; grid-row: 1; } .hint .k-l { grid-column: 1; grid-row: 2; } .hint .k-d { grid-column: 2; grid-row: 2; } .hint .k-r { grid-column: 3; grid-row: 2; }
 @media (max-width: 640px) { .hint { bottom: calc(env(safe-area-inset-bottom, 0px) + 64px); } }
-.pad { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); transform: translateX(-50%);
-  display: grid; grid-template-columns: repeat(3, 50px); grid-template-rows: 50px 50px; gap: 6px; z-index: 2;
+.pad { position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  display: grid; grid-template-columns: repeat(3, 60px); grid-template-rows: 60px 60px; gap: 8px; z-index: 2;
   touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .pad[hidden] { display: none; }
-.pad button { display: grid; place-items: center; padding: 0; border-radius: 10px; cursor: pointer;
+.pad button { display: grid; place-items: center; padding: 0; border-radius: 14px; cursor: pointer;
   background: rgba(20,16,13,.62); border: 1px solid rgba(242,201,138,.35); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   transition: background .08s, transform .08s, border-color .08s; touch-action: none; }
 .pad button.on { background: rgba(242,201,138,.22); border-color: var(--lamp); transform: translateY(1px); }
-.pad svg { width: 22px; height: 22px; display: block; pointer-events: none; }
+.pad svg { width: 30px; height: 30px; display: block; pointer-events: none; }
 .pad .k-up { grid-column: 2; grid-row: 1; } .pad .k-l { grid-column: 1; grid-row: 2; } .pad .k-d { grid-column: 2; grid-row: 2; } .pad .k-r { grid-column: 3; grid-row: 2; }
-body.haspad .hint { bottom: calc(env(safe-area-inset-bottom, 0px) + 132px); left: 50%; transform: translateX(-50%); text-align: center; width: max-content; max-width: calc(100vw - 32px); }
-body.haspad .talk-hint { bottom: calc(env(safe-area-inset-bottom, 0px) + 132px); }
-body.haspad #chat { bottom: calc(env(safe-area-inset-bottom, 0px) + 128px); }
-body.haspad .rooms { bottom: calc(env(safe-area-inset-bottom, 0px) + 14px); flex-direction: column; align-items: flex-end; }
+body.haspad .hint { bottom: calc(env(safe-area-inset-bottom, 0px) + 160px); left: 50%; transform: translateX(-50%); text-align: center; width: max-content; max-width: calc(100vw - 32px); }
+body.haspad .talk-hint { bottom: calc(env(safe-area-inset-bottom, 0px) + 160px); font-size: .95rem; }
+body.haspad #chat { bottom: calc(env(safe-area-inset-bottom, 0px) + 156px); }
+body.haspad .rooms { bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); flex-direction: column; align-items: flex-end; gap: 10px; }
+body.haspad .rooms button { font-size: .95rem; padding: 15px 18px; min-height: 48px; }
+body.haspad .hud-title { font-size: 1.6rem; }
+body.haspad .hud-title small { font-size: .82rem; margin-top: 4px; }
 .crosshair { position: fixed; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px; border-radius: 50%; background: var(--paper); opacity: .7; pointer-events: none; }
 
 /* Entry card */
