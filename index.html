@@ -76,6 +76,18 @@ body.haspad .rooms { bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); flex
 body.haspad .rooms button { font-size: .95rem; padding: 15px 18px; min-height: 48px; }
 body.haspad .hud-title { font-size: 1.6rem; }
 body.haspad .hud-title small { font-size: .82rem; margin-top: 4px; }
+#guest { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 64px); transform: translateX(-50%); z-index: 4;
+  width: min(26rem, calc(100vw - 32px)); box-sizing: border-box; background: var(--paper); color: var(--ink);
+  padding: 20px 22px 18px; border-radius: 2px; box-shadow: 0 16px 40px rgba(0,0,0,.55); display: grid; gap: 10px; }
+#guest[hidden] { display: none; }
+#guest h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 1.35rem; }
+#guest p { margin: 0; font-size: .92rem; line-height: 1.4; color: #3a312a; }
+#guest .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+#guest .row a, #guest .row button { font: 600 .8rem/1 var(--body); letter-spacing: .06em; text-transform: uppercase; padding: 12px 14px; border-radius: 2px; cursor: pointer; text-decoration: none; }
+#guest .write { background: #5a1712; color: var(--paper); border: 1px solid #5a1712; }
+#guest .write[aria-disabled="true"] { opacity: .55; pointer-events: none; }
+#guest .shut { background: transparent; color: var(--ink); border: 1px solid #b9ab98; }
+body.haspad #guest { bottom: calc(env(safe-area-inset-bottom, 0px) + 156px); }
 .crosshair { position: fixed; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px; border-radius: 50%; background: var(--paper); opacity: .7; pointer-events: none; }
 
 /* Entry card */
@@ -188,6 +200,7 @@ body.haspad .hud-title small { font-size: .82rem; margin-top: 4px; }
 
 <div class="talk-hint" id="talkHint" hidden></div>
 <div class="pad" id="pad" hidden aria-label="Walk"><button type="button" class="k-up" data-k="ArrowUp" aria-label="Walk forward"></button><button type="button" class="k-l" data-k="ArrowLeft" aria-label="Turn left"></button><button type="button" class="k-d" data-k="ArrowDown" aria-label="Walk back"></button><button type="button" class="k-r" data-k="ArrowRight" aria-label="Turn right"></button></div>
+<div id="guest" hidden role="dialog" aria-labelledby="guestT"><h2 id="guestT">Guestbook</h2><p>Thank you for visiting. Leave a note for Riya: a favourite piece, a memory it brought back, or just hello.</p><div class="row"><a class="write" id="guestWrite" target="_blank" rel="noopener">Write in the guestbook</a><button type="button" class="shut" id="guestShut">Close</button></div></div>
 <div id="chat" hidden role="dialog" aria-labelledby="chatWho">
   <div class="who" id="chatWho"><i></i><span></span><small></small></div>
   <p class="line" id="chatLine" aria-live="polite"></p>
@@ -1826,7 +1839,53 @@ const BLOCKS = [{ x: 0, z: -18, hw: 1.8, hd: 0.62 }, { x: 0, z: -9, hw: 1.8, hd:
 // the benches seat four a side, one per cushion; sitting faces away from the bench's middle
 const SEAT_H = 0.455;
 const SEATS = [];
-BLOCKS.forEach((b, bi) => { for (const side of [-1, 1]) for (const x of [-1.16, -0.39, 0.39, 1.16])
+// guestbook (2026-11-05, Riya): an open book on a carved dark stand in the corner by the entrance, turned to face the room.
+// The note itself is written in Riya's Google Form (GUESTBOOK_URL); until it's set the card says the book opens soon.
+const GUESTBOOK_URL = "";
+const BOOK = { x: 10.45, z: -1.25, yaw: -Math.PI * 0.75 };
+BLOCKS.push({ x: BOOK.x, z: BOOK.z, hw: 0.42, hd: 0.42 });
+const bookMeshes = [];
+{
+  const g = new THREE.Group(); g.position.set(BOOK.x, 0, BOOK.z); g.rotation.y = BOOK.yaw;
+  const wood = new THREE.MeshStandardMaterial({ color: 0x24160e, roughness: 0.82, metalness: 0 });
+  const add = (geo, mat, x, y, z, rx = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.x = rx; m.castShadow = m.receiveShadow = true; g.add(m); bookMeshes.push(m); return m; };
+  add(new THREE.BoxGeometry(0.56, 0.06, 0.46), wood, 0, 0.03, 0);
+  add(new THREE.BoxGeometry(0.46, 0.04, 0.36), wood, 0, 0.08, 0);
+  // turned column: a lathe with a few rings
+  const prof = [[0.0,0.1],[0.09,0.1],[0.09,0.14],[0.06,0.17],[0.05,0.3],[0.075,0.34],[0.05,0.38],[0.045,0.78],[0.07,0.82],[0.05,0.86],[0.06,0.9],[0.11,0.94],[0.0,0.94]].map(([r,y]) => new THREE.Vector2(r, y));
+  add(new THREE.LatheGeometry(prof, 24), wood, 0, 0, 0);
+  // sloping desk with a little lip to hold the book
+  const tilt = 0.36;
+  const desk = new THREE.Group(); desk.position.set(0, 1.0, 0); desk.rotation.x = tilt; g.add(desk);
+  const dadd = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; desk.add(m); bookMeshes.push(m); return m; };
+  dadd(new THREE.BoxGeometry(0.66, 0.035, 0.48), wood, 0, 0, 0);
+  dadd(new THREE.BoxGeometry(0.66, 0.05, 0.03), wood, 0, 0.03, 0.24);
+  // the open book: oxblood leather covers, two cream page blocks curving up to the spine, a ribbon
+  const leather = new THREE.MeshStandardMaterial({ color: 0x4a1612, roughness: 0.7 });
+  const pageTex = canvasTex(256, 320, (c, W, H) => {
+    c.fillStyle = "#efe6d4"; c.fillRect(0, 0, W, H);
+    c.strokeStyle = "rgba(90,70,50,.28)"; c.lineWidth = 1.4;
+    for (let y = 48; y < H - 24; y += 17) { c.beginPath(); c.moveTo(22, y); c.lineTo(W - 22, y); c.stroke(); }
+    c.strokeStyle = "rgba(40,30,60,.55)"; c.lineWidth = 1.6;
+    for (let y = 48; y < 48 + 17 * 7; y += 17) { c.beginPath(); let x = 26; c.moveTo(x, y - 3); while (x < W - 30 - (y % 50)) { x += 6 + Math.random() * 6; c.lineTo(x, y - 3 - Math.random() * 6); } c.stroke(); }
+  });
+  const pages = new THREE.MeshStandardMaterial({ color: 0xffffff, map: pageTex, roughness: 0.95, emissive: 0x2a2218, emissiveIntensity: 0.35 });
+  const edge = new THREE.MeshStandardMaterial({ color: 0xe2d6bf, roughness: 0.95 });
+  dadd(new THREE.BoxGeometry(0.6, 0.012, 0.42), leather, 0, 0.024, 0);
+  for (const sd of [-1, 1]) {
+    const pg = new THREE.Group(); pg.position.set(sd * 0.0, 0.03, 0); pg.rotation.z = sd * -0.06; desk.add(pg);
+    const blk = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.022, 0.39), [edge, edge, pages, edge, edge, edge]);
+    blk.position.set(sd * 0.142, 0.012, 0); blk.castShadow = blk.receiveShadow = true; pg.add(blk); bookMeshes.push(blk);
+  }
+  dadd(new THREE.BoxGeometry(0.012, 0.004, 0.3), new THREE.MeshStandardMaterial({ color: 0x8a2a1c, roughness: 0.6 }), 0.004, 0.05, 0.12);
+  // a pen resting across the right page
+  const pen = dadd(new THREE.CylinderGeometry(0.006, 0.006, 0.17, 8), new THREE.MeshStandardMaterial({ color: 0x14100c, roughness: 0.4, metalness: 0.3 }), 0.17, 0.056, 0.02);
+  pen.rotation.z = Math.PI / 2; pen.rotation.y = 0.5;
+  // soft warm light just above the pages so the book reads from across the room
+  const glow = new THREE.PointLight(0xffd29a, 0.55, 2.4, 2); glow.position.set(0, 1.75, -0.15); g.add(glow);
+  scene.add(g);
+}
+BLOCKS.forEach((b, bi) => { if (bi > 1) return; for (const side of [-1, 1]) for (const x of [-1.16, -0.39, 0.39, 1.16])
   SEATS.push({ bi, x: b.x + x, z: b.z + side * 0.16, face: side > 0 ? 0 : Math.PI, ax: b.x + x, az: b.z + side * 1.1, side, by: null }); });
 function free(x, z) {
   return AREAS.some(r => x > r.x1 && x < r.x2 && z > r.z1 && z < r.z2) &&
@@ -1863,7 +1922,9 @@ function standUp() { if (!userSeat) return; const st = userSeat.st; userSeat = n
 addEventListener("keydown", e => {
   if (!viewer.hidden) { if (e.key === "Escape") closeViewer(); if (e.key === "ArrowRight") step(1); if (e.key === "ArrowLeft") step(-1); return; }
   if (!chat.hidden) { if (e.key === "Escape") endTalk(); return; }
+  if (!guest.hidden) { if (e.key === "Escape") closeGuest(); return; }
   if (e.code === "KeyE" && nearby) { talk(nearby); return; }
+  if (e.code === "KeyE" && nearBook()) { openGuest(); return; }
   if (e.code === "KeyE") { if (userSeat) standUp(); else { const st = seatNear(pos.x, pos.z); if (st) sitDown(st); } return; }
   keys[e.code] = true; target = null; targetYaw = null;
   if (e.code === "Space" || e.code.startsWith("Arrow")) e.preventDefault();
@@ -1905,10 +1966,11 @@ const ray = new THREE.Raycaster();
 // clicks only open works; walking to a tapped spot is for touch screens, which have no keys
 function pick(nx, ny, walk = false) {
   ray.setFromCamera({ x: nx, y: ny }, camera);
-  const hits = ray.intersectObjects([...artMeshes, ...npcMeshes, ...benchMeshes, floor]);
+  const hits = ray.intersectObjects([...artMeshes, ...npcMeshes, ...benchMeshes, ...bookMeshes, floor]);
   if (!hits.length) return;
   const h = hits[0];
   if (h.object.userData.npc !== undefined) { if (h.distance < 7) talk(residents[h.object.userData.npc]); return; }
+  if (bookMeshes.includes(h.object)) { if (h.distance < 7) openGuest(); return; }
   if (benchMeshes.includes(h.object)) {   // a tap on a bench sits you down (with keys, E does)
     if (walk && !userSeat && h.distance < 6) { const st = seatNear(pos.x, pos.z, 6); if (st) sitDown(st); }
     return;
@@ -1967,6 +2029,20 @@ function goTo(x, z, ry) {
 document.getElementById("goA").onclick = () => goTo(0, -1.6, 0);
 document.getElementById("goB").onclick = () => goTo(0, -20.6, 0);
 
+// ---------- guestbook card ----------
+const guest = document.getElementById("guest"), guestWrite = document.getElementById("guestWrite");
+if (GUESTBOOK_URL) guestWrite.href = GUESTBOOK_URL; else { guestWrite.textContent = "The book opens soon"; guestWrite.setAttribute("aria-disabled", "true"); }
+let guestLocked = false;
+const nearBook = () => Math.hypot(pos.x - BOOK.x, pos.z - BOOK.z) < 2.3;
+function openGuest() {
+  guestLocked = locked; if (locked) document.exitPointerLock();
+  for (const k in keys) keys[k] = false; target = null;
+  guest.hidden = false; (GUESTBOOK_URL ? guestWrite : document.getElementById("guestShut")).focus();
+}
+function closeGuest() { guest.hidden = true; if (guestLocked) lock(); guestLocked = false; }
+document.getElementById("guestShut").onclick = closeGuest;
+guestWrite.addEventListener("click", () => setTimeout(() => { guest.hidden = true; guestLocked = false; }, 200));
+
 // ---------- hud ----------
 const fine = matchMedia("(pointer: fine)").matches;
 const hint = document.getElementById("hint");
@@ -2003,7 +2079,7 @@ if (!fine) {
     b.addEventListener("pointerup", off); b.addEventListener("pointercancel", off); b.addEventListener("lostpointercapture", off);
     b.addEventListener("contextmenu", e => e.preventDefault());
   });
-  const padVis = () => { const show = viewer.hidden && chat.hidden && document.getElementById("intro").hidden; if (pad.hidden === show) { pad.hidden = !show; if (!show) pad.querySelectorAll("button").forEach(b => { keys[b.dataset.k] = false; b.classList.remove("on"); }); } requestAnimationFrame(padVis); };
+  const padVis = () => { const show = viewer.hidden && chat.hidden && guest.hidden && document.getElementById("intro").hidden; if (pad.hidden === show) { pad.hidden = !show; if (!show) pad.querySelectorAll("button").forEach(b => { keys[b.dataset.k] = false; b.classList.remove("on"); }); } requestAnimationFrame(padVis); };
   requestAnimationFrame(padVis);   // starts after the whole script has run (chat is declared further down)
 }
 document.getElementById("controls").innerHTML = fine
@@ -3029,7 +3105,7 @@ function clear(ax, az, bx, bz, pad = 0.42) {
 function route(ax, az, bx, bz) {
   if (clear(ax, az, bx, bz)) return [{ x: bx, z: bz }];
   const N = [{ x: ax, z: az }];
-  for (const b of BLOCKS) for (const sx of [-1, 1]) for (const sz of [-1, 1]) N.push({ x: b.x + sx * (b.hw + 0.55), z: b.z + sz * (b.hd + 0.55) });
+  for (const b of BLOCKS) for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const nx = b.x + sx * (b.hw + 0.55), nz = b.z + sz * (b.hd + 0.55); if (free(nx, nz)) N.push({ x: nx, z: nz }); }
   N.push({ x: bx, z: bz });
   const n = N.length, dist = Array(n).fill(1e9), prev = Array(n).fill(-1), done = Array(n).fill(false); dist[0] = 0;
   for (;;) {
@@ -3219,6 +3295,7 @@ function updateTalkHint() {
   nearby = best;
   let html = "";
   if (best) html = fine ? `<kbd>E</kbd> or click to talk to ${best.who.name}` : `Tap ${best.who.name} to talk`;
+  else if (chat.hidden && viewer.hidden && guest.hidden && nearBook()) html = fine ? `<kbd>E</kbd> or click to sign the guestbook` : `Tap the book to sign the guestbook`;
   else if (chat.hidden && viewer.hidden && userSeat) html = fine ? `<kbd>E</kbd> or <kbd>↑</kbd> to stand up` : `Tap the floor to stand up`;
   else if (chat.hidden && viewer.hidden && seatNear(pos.x, pos.z)) html = fine ? `<kbd>E</kbd> to sit on the bench` : `Tap the bench to sit`;
   if (html !== hintKey) { hintKey = html; talkHint.hidden = !html; talkHint.innerHTML = html; }
